@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="VoiceStar: Robust, Duration-controllable TTS that can Extrapolate">
+  <meta name="keywords" content="TTS, Voice Cloning, Extrapolation, Neural Codec Language Models">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VoiceStar</title>
+  <style>
+    audio {
+      width: 100%;
+      max-width: 100%;
+    }
+  </style>
+  <style>
+    td {
+      padding-bottom: 16px;
+    }
+  </style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-L7749G0HJZ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-L7749G0HJZ');
+</script>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-body" style="padding-bottom: 24px;">
+    <div class="container  is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">VoiceStar: Robust, Duration-controllable TTS that can Extrapolate</h1>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">
+              <a href="https://jasonppy.github.io/">Puyuan Peng</a><sup>1</sup>,</span>
+            <span class="author-block">
+              <a href="https://swdanielli.github.io/">Shang-Wen Li</a>,</span>
+            <span class="author-block">
+              <a href="https://scholar.google.com/citations?hl=en&user=tJ_PrzgAAAAJ">Abdelrahman Mohamed</a><sup>2</sup>,
+            </span>
+            <span class="author-block">
+              <a href="https://www.cs.utexas.edu/~harwath/">David Harwath</a><sup>1</sup>,
+            </span>
+          </div>
+
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><sup>1</sup>The University of Texas at Austin </span>
+            <span class="author-block"><sup>2</sup>Rembrand</span>
+          </div>
+
+
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <span class="link-block">
+                <a href="https://jasonppy.github.io/assets/pdfs/VoiceStar.pdf"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="ai ai-arxiv"></i>
+                  </span>
+                  <span>Paper</span>
+                </a>
+                <a href="https://github.com/jasonppy/VoiceStar" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                    <i class="fab fa-github"></i>
+                  </span>
+                  <span>Code & Model</span>
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+
+
+<section id="abs" class="section" style="padding-top: 0px;">
+  <div class="container  is-max-desktop">
+    <!-- Abstract. -->
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">TL;DR</h2>
+        <div class="content has-text-justified">
+          <p>
+                <b>VoiceStar</b> is an autoregressive voice cloning (zero-shot) text-to-speech model, that can precicely control the output duration and generation speech longer than maximal training duration during inference
+          </p>
+          <p>
+              To clone an unseen voice or edit a recording, VoiceStar needs only a few seconds of the voice.
+              Trained on 30 seconds speech, VoiceStar can generate 40 seconds long speech.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="hero teaser">
+  <div class="container is-max-desktop is-centered has-text-centered">
+    <div class="hero-body">
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-3">Model Architecture of VoiceStar</h2>
+          <img src="./static/images/voicestar_architecture.png" class="interpolation-image"
+            alt="Interpolate start reference image." />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="toc" class="section" style="padding-top: 0px;">
+  <div class="container  is-fluid">
+    <!-- Abstract. -->
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Context Length (prompt + generation duration)</h2>
+        <div class="is-centered">
+          <ul>
+            <li><a href="#20-30s"><b>20-30s, within training duration</b></a></li>
+            <li><a href="#30-40s"><b>30-40s, extrapolate</b></a></li>
+            <li><a href="#40-50s"><b>40-50s, extrapolate</b></a></li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- 20-30s -->
+<section id="30" class="hero">
+  <div class="hero-body">
+    <div class="container is-fluid">
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-3">Context length 20-30s, within training duration</h2>
+          <div class="content">
+            <p>All speakers are unseen during training. Data is from librilight. All models are trained on maximally 30 seconds speech.</p>
+          </div>
+        </div>
+      </div>
+      <div class="columns is-centered has-text-centered">
+        <table class="table" style="background-color: transparent; table-layout: fixed; width: 100%;">
+          <thead>
+            <tr>
+              <th align="center"><strong>Reference Speech</strong></th>
+              <th align="center"><strong>Target Transcript</strong></th>
+              <th align="center"><strong><span class="icon"><i class="fas fa-magic"></i></span>VoiceStar (Ours)</strong></th>
+              <th align="center"><strong>F5-TTS</strong></th>
+              <th align="center"><strong>MaskGCT</strong></th>
+              <th align="center"><strong>Ground Truth</strong></th>
+            </tr>
+          </thead>
+          <tbody>
+      <!-- one example below, there should be a lot more -->
+      <tr>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/prompt/sample_1.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="48%" style="text-align: left;">The tale is but conjecture, yet all the romance is there; for picture a wall over fifteen feet high built as they built long ago, standing for all those ages between two gardens. For would not the temptation arise to peer over the wall if a young man heard, perhaps songs, one evening the other side?</td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/voicestar/sample_1.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/f5tts/sample_1.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/maskgct/sample_1.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/target/sample_1.wav"
+              type="audio/wav">
+          </audio></td>
+      </tr>
+      <tr>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/prompt/sample_2.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="48%" style="text-align: left;">That is sure. You do not know anything about the greatest men and women. I went out to write the life of General Garfield, and a neighbor, knowing I was in a hurry, and as there was a great crowd around the front door, took me around to General Garfield's back door and shouted, “Jim! Jim!”</td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/voicestar/sample_2.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/f5tts/sample_2.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/maskgct/sample_2.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/target/sample_2.wav"
+              type="audio/wav">
+          </audio></td>
+      </tr>
+      <tr>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/prompt/sample_3.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="48%" style="text-align: left;">I secured two corner seats in a smoking-carriage, and then paced up and down the platform waiting for him. When men have nothing else to occupy their minds, they take to thinking. Having nothing better to do until B. arrived, I fell to musing. What a wonderful piece of Socialism modern civilisation has become!</td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/voicestar/sample_3.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/f5tts/sample_3.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/maskgct/sample_3.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/target/sample_3.wav"
+              type="audio/wav">
+          </audio></td>
+      </tr>
+      <tr>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/prompt/sample_4.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="48%" style="text-align: left;">No telegraph ever carried the news faster, all over the region, that Morgan had a wonderful harp. All the grass in front of the house, was soon worn away by the crowds, that came to hear and dance. As soon as Taffy touched the harp strings, the feet of everyone, young and old, began shuffling,</td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/voicestar/sample_4.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/f5tts/sample_4.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/maskgct/sample_4.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/target/sample_4.wav"
+              type="audio/wav">
+          </audio></td>
+      </tr>
+      <tr>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/prompt/sample_5.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="48%" style="text-align: left;">"No," said Betty. "We're a walking club." "No politics?" "None whatever." "All right. Now, then, I'll see why Martha didn't come over. I can't understand." "Perhaps this is she now," said Betty, as another woman was seen coming up the walk. "It is," said Mrs. Robertson. "That's Martha Black." The two met. There was much talk, of which the girls caught some,</td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/voicestar/sample_5.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/f5tts/sample_5.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/maskgct/sample_5.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/target/sample_5.wav"
+              type="audio/wav">
+          </audio></td>
+      </tr>
+      <tr>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/prompt/sample_6.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="48%" style="text-align: left;">The Princess Sarah cannot chide us now. We're free! I love the wilderness! I love The earth and sky! Look at those birds, Far as the fleecy clouds! And here Are flowers with which to wreathe my bow. With it I'll bring thee deer and fowl to dress,</td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/voicestar/sample_6.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/f5tts/sample_6.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/maskgct/sample_6.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/target/sample_6.wav"
+              type="audio/wav">
+          </audio></td>
+      </tr>
+      <tr>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/prompt/sample_7.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="48%" style="text-align: left;">Instead of troubling to answer him Peter flew round the room, taking the mantelpiece on the way. 'How topping!' said John and Michael. 'How sweet!' cried Wendy. 'Yes, I'm sweet, oh, I am sweet!' said Peter, forgetting his manners again. It looked delightfully easy, and they tried it first from the floor and then from the beds,</td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/voicestar/sample_7.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/f5tts/sample_7.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/maskgct/sample_7.wav"
+              type="audio/wav">
+          </audio></td>
+        <td width="8%" style="text-align: center;"><audio controls="">
+            <source src="demo_wavs/max30/target/sample_7.wav"
+              type="audio/wav">
+          </audio></td>
+      </tr>
+
+      <!-- many more rows like the one above -->
+            </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- below are 30-40s -->
+<section id="40" class="hero">
+    <div class="hero-body">
+      <div class="container is-fluid">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-four-fifths">
+            <h2 class="title is-3">Context length 30-40s, requires extrapolation</h2>
+            <div class="content">
+              <p>All speakers are unseen during training. Data is from librilight. All models are trained on maximally 30 seconds speech.</p>
+            </div>
+          </div>
+        </div>
+        <div class="columns is-centered has-text-centered">
+          <table class="table" style="background-color: transparent; table-layout: fixed; width: 100%;">
+            <thead>
+              <tr>
+                <th align="center"><strong>Reference Speech</strong></th>
+                <th align="center"><strong>Target Transcript</strong></th>
+                <th align="center"><strong><span class="icon"><i class="fas fa-magic"></i></span>VoiceStar (Ours)</strong></th>
+                <th align="center"><strong>F5-TTS</strong></th>
+                <th align="center"><strong>MaskGCT</strong></th>
+                <th align="center"><strong>Ground Truth</strong></th>
+              </tr>
+            </thead>
+            <tbody>
+        <!-- one example below, there should be a lot more -->
+        <tr>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/prompt/sample_1.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="48%" style="text-align: left;">The lady of the portrait must have been some twenty odd years; she was no simple maiden, no half opened rosebud, but a woman in the full resplendency of her beauty. Her face was oval, but not too long, her lips full, half open and smiling, her eyes cast a languishing side glance, and she had a dimple on her chin as if formed by the tip of Cupid's playful finger.</td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/voicestar/sample_1.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/f5tts/sample_1.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/maskgct/sample_1.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/target/sample_1.wav"
+                type="audio/wav">
+            </audio></td>
+        </tr>
+        <tr>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/prompt/sample_2.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="48%" style="text-align: left;">What! This unknown continent, this virgin soil----" "Has already a name," replied Altamont, coolly. Hatteras was silent, but his lip quivered. "And what name has it, then?" asked the Doctor, rather astonished at Altamont's affirmation. "My dear Clawbonny," replied the American, "it is the custom, not to say the right, of every navigator to christen the soil on which he is the first to set foot. It appears to me, therefore, that it is my privilege and duty on this occasion to exercise my prerogative, and--" "But,</td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/voicestar/sample_2.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/f5tts/sample_2.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/maskgct/sample_2.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/target/sample_2.wav"
+                type="audio/wav">
+            </audio></td>
+        </tr>
+        <tr>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/prompt/sample_3.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="48%" style="text-align: left;">"This walking is harder on them than you'd think." Fortunately the garments came on time, and in fresh outfits the girls prepared to bid farewell to the camp, and once more proceed on their way. The boys begged for permission to accompany them, but Betty was firm in refusing. "We said we would make this tour all by ourselves," she declared, "and we are going to do it. Some other time you boys may come along. But there is only another day or so, and we will be back home. Please don't tease." The boys did, but that was all the good it availed them.</td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/voicestar/sample_3.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/f5tts/sample_3.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/maskgct/sample_3.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/target/sample_3.wav"
+                type="audio/wav">
+            </audio></td>
+        </tr>
+        <tr>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/prompt/sample_4.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="48%" style="text-align: left;">I knew that it was safe where you had put it, Miss Nelson," and he looked at Betty. "Besides, I have been without it so long now that it seems almost as if I never had it. And from all the good it is going to do me, perhaps I might be better off without it now." "We didn't exactly understand what you meant by the note you wrote," said Betty. "Well, I'll tell you how that was," he said, frankly. "You see, I was left considerable money by a rich relative, but I had bad luck. Maybe I didn't have a good business head, either. Anyhow,</td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/voicestar/sample_4.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/f5tts/sample_4.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/maskgct/sample_4.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/target/sample_4.wav"
+                type="audio/wav">
+            </audio></td>
+        </tr>
+        <tr>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/prompt/sample_5.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="48%" style="text-align: left;">This is only a line to tell you all how much father loves you. The Pawnee Indian drew you the picture of the little dog, which runs everywhere round the ship, and now and then howls a little when the band plays. Near Santiago, May 20, 1898. DARLING ETHEL: I loved your little letter. Here there are lots of funny little lizards that run about in the dusty roads very fast, and then stand still with their heads up. Beautiful red cardinal birds and tanagers flit about in the woods,</td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/voicestar/sample_5.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/f5tts/sample_5.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/maskgct/sample_5.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/target/sample_5.wav"
+                type="audio/wav">
+            </audio></td>
+        </tr>
+        <tr>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/prompt/sample_6.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="48%" style="text-align: left;">I watched their purple shadows trail Across the sea and hide Within the hollows of the waves That rode the rising tide. Sometimes the little flakes of foam Dashed up in twinkling spray; And out along their silver paths The ships sailed far away. As through the sun I followed them With straining, eager eyes, From out the sparkling waves I saw A shining vision rise. It seemed a ghostly castle white, With battlement and tower,</td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/voicestar/sample_6.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/f5tts/sample_6.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/maskgct/sample_6.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/target/sample_6.wav"
+                type="audio/wav">
+            </audio></td>
+        </tr>
+        <tr>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/prompt/sample_7.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="48%" style="text-align: left;">and have obstacle races down the hall when you brought in your friends? Mother continues much attached to Scamp, who is certainly a cunning little dog. He is very affectionate, but so exceedingly busy when we are out on the grounds, that we only catch glimpses of him zigzagging at full speed from one end of the place to the other. The kitchen cat and he have strained relations but have not yet come to open hostility.</td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/voicestar/sample_7.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/f5tts/sample_7.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/maskgct/sample_7.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max40/target/sample_7.wav"
+                type="audio/wav">
+            </audio></td>
+        </tr>
+  
+        <!-- many more rows like the one above -->
+              </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<!-- below are 40-50s -->
+<section id="50" class="hero">
+    <div class="hero-body">
+      <div class="container is-fluid">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-four-fifths">
+            <h2 class="title is-3">Context length 40-50s, requires extrapolation</h2>
+            <div class="content">
+              <p>All speakers are unseen during training. Data is from librilight. All models are trained on maximally 30 seconds speech.</p>
+            </div>
+          </div>
+        </div>
+        <div class="columns is-centered has-text-centered">
+          <!-- <table class="table" style="background-color: transparent;"> -->
+          <table class="table" style="background-color: transparent; table-layout: fixed; width: 100%;">
+            <thead>
+              <tr>
+                <th align="center"><strong>Reference Speech</strong></th>
+                <th align="center"><strong>Target Transcript</strong></th>
+                <th align="center"><strong><span class="icon"><i class="fas fa-magic"></i></span>VoiceStar (Ours)</strong></th>
+                <th align="center"><strong>F5-TTS</strong></th>
+                <th align="center"><strong>MaskGCT</strong></th>
+                <th align="center"><strong>Ground Truth</strong></th>
+              </tr>
+            </thead>
+            <tbody>
+        <!-- one example below, there should be a lot more -->
+        <tr>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/prompt/sample_1.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="48%" style="text-align: left;">To do this properly it was necessary to engage a carpenter, who would make the necessary framework. Then Thomas and James would help him to put up the building. But money was needed to carry out the undertaking, and this was the purpose to which Thomas decided to devote his first earnings when he left home. One day Thomas returned from an expedition in search of work, in high glee. He had obtained employment in the State of Michigan. He had engaged to assist in clearing the forest, that is, in cutting down trees for a man who was about to make a farm.</td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/voicestar/sample_1.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/f5tts/sample_1.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/maskgct/sample_1.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/target/sample_1.wav"
+                type="audio/wav">
+            </audio></td>
+        </tr>
+        <tr>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/prompt/sample_2.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="48%" style="text-align: left;">He would go see him at once. The trouble with Peter is that he doesn't think of all sides of a question. He is impulsive. That is, he goes right ahead and does the thing that comes into his head first, and sometimes this isn't the wisest or best thing to do. So now he scampered down into the Green Forest as fast as his long legs would carry him, to hunt for Prickly Porky. It was no trouble at all to find him, for he had only to follow the line of trees that had been stripped of their bark. "Good afternoon, Prickly Porky. Have you heard the news about Chatterer?" said Peter, talking very fast, for he was quite out of breath. "Yes," replied Prickly Porky.</td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/voicestar/sample_2.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/f5tts/sample_2.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/maskgct/sample_2.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/target/sample_2.wav"
+                type="audio/wav">
+            </audio></td>
+        </tr>
+        <tr>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/prompt/sample_3.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="48%" style="text-align: left;">Whitburn stood aside. Handley, Smith and Pottgeiter went through the door; the others followed. The other three members of the trustees' committee were already in the room. A few minutes later, Leonard Fitch arrived, also carrying a briefcase. "Well, everybody seems to be here," Whitburn said, starting toward his chair behind the desk. "We might as well get this started." "Yes. If you'll excuse me, Doctor." Dacre stepped in front of him and sat down at the desk. "I've been selected as chairman of this committee; I believe I'm presiding here.</td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/voicestar/sample_3.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/f5tts/sample_3.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/maskgct/sample_3.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/target/sample_3.wav"
+                type="audio/wav">
+            </audio></td>
+        </tr>
+        <tr>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/prompt/sample_4.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="48%" style="text-align: left;">And the camps we made when their strength outplayed and the day was pinched and wan; And oh, the joy of that blessed halt, and how I did dread the dawn; And how I hated the weary men who rose and dragged me on. And oh, how I begged to rest, to rest--the snow was so sweet a shroud; And oh, how I cried when they urged me on, cried and cursed them aloud; Yet on they strained, all racked and pained, and sorely their backs were bowed.</td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/voicestar/sample_4.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/f5tts/sample_4.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/maskgct/sample_4.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/target/sample_4.wav"
+                type="audio/wav">
+            </audio></td>
+        </tr>
+        <tr>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/prompt/sample_5.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="48%" style="text-align: left;">I peddle around here a lot. My father's dead, I haven't got any relatives except a sick aunt that I go to see once in a while, and I'm in business for myself." "You are quite a little soldier," complimented Betty, as she got out the bandages and salve. "You are very brave." "Oh, I haven't got any kick coming," he answered, with a laugh. "Of course, this cut foot will make me travel slow for a while, and I can't get to all my customers on time. But I guess they'll save their trade for me--the regulars will. "I might be worse off," the lad continued, after a pause. "I might be in as bad a hole as that fellow I saw on the train not long ago." "How was that?" asked Betty, more for the sake of saying something rather than because she was interested.</td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/voicestar/sample_5.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/f5tts/sample_5.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/maskgct/sample_5.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/target/sample_5.wav"
+                type="audio/wav">
+            </audio></td>
+        </tr>
+        <tr>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/prompt/sample_6.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="48%" style="text-align: left;">These two cases are given simply because they have been fixed in my mind; they are but types of what is going on everywhere throughout civilization: the world is everywhere growing uglier and more commonplace, in spite of the conscious and very strenuous efforts of a small group of people towards the revival of art, which are so obviously out of joint with the tendency of the age that, while the uncultivated have not even heard of them, the mass of the cultivated look upon them as a joke, and even that they are now beginning to get tired of. Now, if it be true, as I have asserted, that genuine art is an unmixed blessing to the world,</td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/voicestar/sample_6.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/f5tts/sample_6.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/maskgct/sample_6.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/target/sample_6.wav"
+                type="audio/wav">
+            </audio></td>
+        </tr>
+        <tr>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/prompt/sample_7.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="48%" style="text-align: left;">This is only a line to tell you all how much father loves you. The Pawnee Indian drew you the picture of the little dog, which runs everywhere round the ship, and now and then howls a little when the band plays. Near Santiago, May 20, 1898. DARLING ETHEL: I loved your little letter. Here there are lots of funny little lizards that run about in the dusty roads very fast, and then stand still with their heads up. Beautiful red cardinal birds and tanagers flit about in the woods, and the flowers are lovely. But you never saw such dust.</td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/voicestar/sample_7.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/f5tts/sample_7.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/maskgct/sample_7.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/target/sample_7.wav"
+                type="audio/wav">
+            </audio></td>
+        </tr>
+        <tr>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/prompt/sample_8.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="48%" style="text-align: left;">"Every single day, mother!" "Every single thing that happens." "A fat letter every morning," they promised in chorus. "If there is any real trouble remember to telegraph your Uncle Allan--did you write down his address, 11 Broad Street, New York? Don't bother him about little things, for he is not well, you know." Gilbert displayed a note-book filled with memoranda and addresses. "And in any small difficulty send for Cousin Ann," Mrs. Carey went on. "The mere thought of her coming will make me toe the mark, I can tell you that!" was Gilbert's rejoinder. "Better than any ogre or bug-a-boo, Cousin Ann is, even for Peter!" said Nancy.</td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/voicestar/sample_8.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/f5tts/sample_8.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/maskgct/sample_8.wav"
+                type="audio/wav">
+            </audio></td>
+          <td width="8%" style="text-align: center;"><audio controls="">
+              <source src="demo_wavs/max50/target/sample_8.wav"
+                type="audio/wav">
+            </audio></td>
+        </tr>
+        <!-- many more rows like the one above -->
+              </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+
+<section class="section" id="BibTeX">
+  <div class="container is-max-desktop content">
+    <h2 class="title">BibTeX</h2>
+    <pre><code>@article{peng2025voicestar,
+  author    = {Peng, Puyuan and Li, Shang-Wen and Huang, Po-Yao and Mohamed, Abdelrahman and Harwath, David},
+  title     = {VoiceStar: Robust Zero-Shot Autoregressive TTS with Duration Control and Extrapolation},
+  journal   = {arxiv},
+  year      = {2025},
+}</code></pre>
+  </div>
+</section>
+
+
+<footer class="footer">
+  <div class="container is-fluid">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Licenses</h2>
+        <div class="content">
+          <p>
+            This website is licensed under a <a rel="license"
+                                                href="https://creativecommons.org/licenses/by/4.0/">Creative
+            Commons Attribution 4.0 International License</a>.
+          </p>
+          <p>
+            Website source code based on the <a
+            href="https://github.com/nerfies/nerfies.github.io">Nerfies</a> project page.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
